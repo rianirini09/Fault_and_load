@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Load Forecasting - Sistem ML Kelistrikan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/load_forecast.css') }}">
+<script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-plugin-annotation.min.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header>
+    <h1>📈 Prediksi Beban Listrik</h1>
+    <p class="subtitle">Load Forecasting 24 Jam ke Depan</p>
+  </header>
+
+  <div class="grid">
+    <!-- FORM INPUT -->
+    <section class="card">
+      <h2>Input Parameter</h2>
+      <form id="loadForecastForm">
+
+        <div class="form-group">
+          <label for="target_datetime">Waktu "Sekarang" (titik awal prediksi)</label>
+          <input type="datetime-local" id="target_datetime" required>
+        </div>
+
+        <h3 class="form-subtitle">Riwayat Beban Terakhir (MW)</h3>
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="current_demand">Beban saat ini</label>
+            <input type="number" step="any" id="current_demand" required placeholder="1013.6">
+          </div>
+          <div class="form-group">
+            <label for="demand_1h_ago">1 jam sebelumnya</label>
+            <input type="number" step="any" id="demand_1h_ago" required placeholder="1040.0">
+          </div>
+          <div class="form-group">
+            <label for="demand_2h_ago">2 jam sebelumnya</label>
+            <input type="number" step="any" id="demand_2h_ago" required placeholder="1068.3">
+          </div>
+          <div class="form-group">
+            <label for="demand_24h_ago">Jam sama, kemarin</label>
+            <input type="number" step="any" id="demand_24h_ago" required placeholder="1005.2">
+          </div>
+          <div class="form-group">
+            <label for="demand_168h_ago">Jam sama, minggu lalu</label>
+            <input type="number" step="any" id="demand_168h_ago" required placeholder="998.7">
+          </div>
+          <div class="form-group">
+            <label for="roll_mean_24">Rata-rata beban 24 jam terakhir</label>
+            <input type="number" step="any" id="roll_mean_24" required placeholder="1195.1">
+          </div>
+        </div>
+
+        <h3 class="form-subtitle">Prakiraan Cuaca (rata-rata untuk 24 jam ke depan)</h3>
+        <div class="form-row-grid form-row-grid--4">
+          <div class="form-group">
+            <label for="T2M">Suhu (°C)</label>
+            <input type="number" step="any" id="T2M" required placeholder="26.3">
+          </div>
+          <div class="form-group">
+            <label for="QV2M">Kelembaban Spesifik</label>
+            <input type="number" step="any" id="QV2M" required placeholder="0.0177">
+          </div>
+          <div class="form-group">
+            <label for="TQL">Awan/Curah (TQL)</label>
+            <input type="number" step="any" id="TQL" required placeholder="0.11">
+          </div>
+          <div class="form-group">
+            <label for="W2M">Kecepatan Angin</label>
+            <input type="number" step="any" id="W2M" required placeholder="8.0">
+          </div>
+        </div>
+
+        <h3 class="form-subtitle">Kalender &amp; Kapasitas</h3>
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="holiday_id">Kode Hari Libur (Holiday_ID)</label>
+            <input type="number" step="1" min="0" id="holiday_id" value="0">
+          </div>
+          <div class="form-group">
+            <label for="capacity_mw">Kapasitas Sistem, MW (opsional)</label>
+            <input type="number" step="any" id="capacity_mw" placeholder="kosongkan = otomatis">
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" id="is_holiday"> Hari Libur Nasional</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" id="is_school" checked> Hari Sekolah Aktif</label>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button type="submit" id="submitBtn">🔮 Prediksi Beban</button>
+          <button type="reset" class="btn-secondary" id="resetBtn">↺ Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- HASIL PREDIKSI -->
+    <section class="card">
+      <h2>Hasil Prediksi</h2>
+      <div id="loading" class="hidden">⏳ Menghitung prediksi 24 jam ke depan...</div>
+      <div id="lf-error" class="error hidden"></div>
+
+      <div id="lf-results" class="hidden">
+        <div class="lf-stats-row">
+          <div class="lf-stat-card">
+            <div class="lf-stat-label">Beban saat ini</div>
+            <div class="lf-stat-value" id="stat-current">— MW</div>
+          </div>
+          <div class="lf-stat-card">
+            <div class="lf-stat-label">Puncak diprediksi</div>
+            <div class="lf-stat-value" id="stat-peak">— MW</div>
+          </div>
+          <div class="lf-stat-card">
+            <div class="lf-stat-label">Jam puncak</div>
+            <div class="lf-stat-value" id="stat-peak-hour">—</div>
+          </div>
+          <div class="lf-stat-card">
+            <div class="lf-stat-label">MAPE rata-rata 24 jam</div>
+            <div class="lf-stat-value" id="stat-mape">—%</div>
+          </div>
+        </div>
+
+        <div class="lf-chart-wrap">
+          <canvas id="loadForecastChart" height="140"></canvas>
+        </div>
+
+        <div class="lf-status-row">
+          <span id="status-badge" class="lf-badge lf-badge--ok">Status: —</span>
+          <span id="status-detail" class="lf-status-detail"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/load_forecast.js') }}"></script>
+{% endblock %}

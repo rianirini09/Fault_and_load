@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{% block title %}Sistem ML Kelistrikan{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">⚡ ML Kelistrikan</div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('index') }}"
+         class="{{ 'active' if active_page == 'fault' else '' }}">
+        🛡️ Fault Detection
+      </a>
+      <a href="{{ url_for('load_forecast_page') }}"
+         class="{{ 'active' if active_page == 'load' else '' }}">
+        📈 Load Forecasting
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Fault Detection - Sistem ML Kelistrikan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/fault_detection.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header>
+    <h1>⚡ Sistem Deteksi Gangguan Saluran Listrik</h1>
+    <p class="subtitle">Klasifikasi Bertingkat Berbasis Machine Learning</p>
+  </header>
+
+  <div class="grid">
+    <!-- FORM INPUT -->
+    <section class="card">
+      <h2>Input Parameter</h2>
+      <form id="predictForm">
+        <div class="form-group">
+          <label for="Ia">Arus Fasa A — Ia (A)</label>
+          <input type="number" step="any" id="Ia" name="Ia" required
+                 placeholder="contoh: -151.2918124">
+        </div>
+        <div class="form-group">
+          <label for="Ib">Arus Fasa B — Ib (A)</label>
+          <input type="number" step="any" id="Ib" name="Ib" required
+                 placeholder="contoh: -9.677451563">
+        </div>
+        <div class="form-group">
+          <label for="Ic">Arus Fasa C — Ic (A)</label>
+          <input type="number" step="any" id="Ic" name="Ic" required
+                 placeholder="contoh: 85.80016226">
+        </div>
+        <div class="form-group">
+          <label for="Va">Tegangan Fasa A — Va (pu)</label>
+          <input type="number" step="any" id="Va" name="Va" required
+                 placeholder="contoh: 0.400749853">
+        </div>
+        <div class="form-group">
+          <label for="Vb">Tegangan Fasa B — Vb (pu)</label>
+          <input type="number" step="any" id="Vb" name="Vb" required
+                 placeholder="contoh: -0.132934945">
+        </div>
+        <div class="form-group">
+          <label for="Vc">Tegangan Fasa C — Vc (pu)</label>
+          <input type="number" step="any" id="Vc" name="Vc" required
+                 placeholder="contoh: -0.267814907">
+        </div>
+        <div class="button-row">
+          <button type="submit" id="submitBtn">🔍 Prediksi</button>
+          <button type="reset" class="btn-secondary" id="resetBtn">↺ Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- HASIL PREDIKSI -->
+    <section class="card">
+      <h2>Hasil Prediksi Bertingkat</h2>
+      <div id="loading" class="hidden">⏳ Menganalisis data...</div>
+      <div id="errorBox" class="error hidden"></div>
+
+      <div id="results" class="hidden">
+        <!-- Stage 1 -->
+        <div class="stage" id="stage1Box">
+          <div class="stage-header">
+            <span class="stage-num">1</span>
+            <h3>Status Sistem</h3>
+          </div>
+          <p class="stage-label" id="stage1Label">-</p>
+          <p class="stage-desc"  id="stage1Desc">-</p>
+          <div class="confidence">
+            <div class="confidence-bar"><div class="confidence-fill" id="stage1Bar"></div></div>
+            <span id="stage1Conf">0%</span>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="stage hidden" id="stage2Box">
+          <div class="stage-header">
+            <span class="stage-num">2</span>
+            <h3>Kategori Gangguan</h3>
+          </div>
+          <p class="stage-label" id="stage2Label">-</p>
+          <p class="stage-desc"  id="stage2Desc">-</p>
+          <div class="confidence">
+            <div class="confidence-bar"><div class="confidence-fill" id="stage2Bar"></div></div>
+            <span id="stage2Conf">0%</span>
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="stage hidden" id="stage3Box">
+          <div class="stage-header">
+            <span class="stage-num">3</span>
+            <h3>Tipe Gangguan</h3>
+          </div>
+          <p class="stage-label" id="stage3Label">-</p>
+          <p class="stage-desc"  id="stage3Desc">-</p>
+          <div class="confidence">
+            <div class="confidence-bar"><div class="confidence-fill" id="stage3Bar"></div></div>
+            <span id="stage3Conf">0%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p>© 2025 — Fault Detection System | ML-Based Multi-Stage Classification</p>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/fault_detection.js') }}"></script>
+{% endblock %}
