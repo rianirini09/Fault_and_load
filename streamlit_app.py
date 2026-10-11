@@ -299,6 +299,8 @@ def run_manual_load_forecast(bundle: dict, payload: dict) -> dict:
 # ============================================================
 
 import streamlit as st
+import base64
+from datetime import datetime
 
 
 # ============================================================
@@ -314,11 +316,20 @@ st.set_page_config(
 
 
 # ============================================================
+# KONSTANTA NAVIGASI
+# ============================================================
+
+PAGE_DASHBOARD = "🏠 Dashboard"
+PAGE_FAULT = "🛡️ Fault Detection"
+PAGE_LOAD = "📈 Load Forecasting"
+
+
+# ============================================================
 # SESSION STATE
 # ============================================================
 
 if "page" not in st.session_state:
-    st.session_state.page = "🛡️ Fault Detection"
+    st.session_state.page = PAGE_DASHBOARD
 
 if "fault_result" not in st.session_state:
     st.session_state.fault_result = None
@@ -341,19 +352,176 @@ def reset_fault_detection():
 
 
 # ============================================================
+# FUNGSI BANTU UI DASHBOARD (khusus tampilan)
+# ============================================================
+
+def go_to_page(target_page: str):
+    """Pindah halaman dari tombol di dashboard."""
+    st.session_state.page = target_page
+
+
+def _flat(html: str) -> str:
+    """Ratakan HTML supaya tidak terbaca sebagai code block oleh markdown."""
+    return "".join(line.strip() for line in html.splitlines())
+
+
+def _svg_uri(svg: str) -> str:
+    encoded = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
+def _image_uri(filename: str, fallback_svg: str) -> str:
+    """
+    Pakai gambar asli dari folder assets/ bila ada
+    (assets/fault_detection.png, assets/load_forecasting.png),
+    kalau tidak ada pakai ilustrasi bawaan.
+    """
+    path = os.path.join("assets", filename)
+
+    if os.path.exists(path):
+        ext = os.path.splitext(filename)[1].lower().replace(".", "")
+        ext = "jpeg" if ext == "jpg" else ext
+        with open(path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:image/{ext};base64,{encoded}"
+
+    return _svg_uri(fallback_svg)
+
+
+BOLT_PATH = "M13 2 4 14h6l-1 8 9-12h-6z"
+
+SVG_BOLT_LIGHT = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+    f'<path d="{BOLT_PATH}" fill="#5aa9ff"/></svg>'
+)
+
+SVG_BOLT_BLUE = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+    f'<path d="{BOLT_PATH}" fill="#1565f0"/></svg>'
+)
+
+SVG_CHART_ICON = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+    'fill="none" stroke="#ffffff" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round">'
+    '<path d="M3 20V9l5 4 5-7 4 4 4-6"/>'
+    '<path d="M3 20h18"/><path d="M3 20V9h3v11M10 20v-5h3v5"/></svg>'
+)
+
+SVG_TOWERS_SIDEBAR = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" '
+    'fill="none" stroke="#3f78c9" stroke-width="1" opacity="0.8">'
+    '<path d="M130 10 L118 110 M130 10 L142 110 M118 110 L142 110 '
+    'M122 70 L138 70 M120 90 L140 90 M125 40 L135 40 '
+    'M122 70 L140 90 M138 70 L120 90 M126 40 L138 70 M134 40 L122 70 '
+    'M112 30 L148 30 M116 22 L144 22"/>'
+    '<path d="M60 50 L52 110 M60 50 L68 110 M52 110 L68 110 '
+    'M54 85 L66 85 M54 85 L68 110 M66 85 L52 110 M50 62 L70 62"/>'
+    '<path d="M0 90 Q60 60 130 30 T200 45 M0 100 Q70 75 130 22 T200 38"/>'
+    '</svg>'
+)
+
+SVG_FAULT_IMAGE = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 306">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14306f"/>
+      <stop offset="0.45" stop-color="#3a5db0"/>
+      <stop offset="0.75" stop-color="#d98a6c"/>
+      <stop offset="1" stop-color="#f7b267"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="306" fill="url(#sky)"/>
+  <g stroke="#0a1428" stroke-width="1.2" fill="none" opacity="0.85">
+    <path d="M0 150 Q120 190 200 105 T320 120"/>
+    <path d="M0 165 Q120 205 200 120 T320 138"/>
+    <path d="M0 180 Q120 218 200 135 T320 156"/>
+    <path d="M0 120 Q100 150 200 80 T320 70"/>
+  </g>
+  <path d="M0 150 Q120 190 200 105 T320 120" stroke="#6fb0ff" stroke-width="0.8" fill="none" opacity="0.6"/>
+  <g stroke="#0a1428" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M200 20 L178 290 M200 20 L222 290 M178 290 L222 290"/>
+    <path d="M186 150 L214 150 M182 200 L218 200 M190 100 L210 100 M193 70 L207 70"/>
+    <path d="M190 100 L214 150 M210 100 L186 150 M186 150 L218 200 M214 150 L182 200"/>
+    <path d="M160 80 L240 80 M168 105 L232 105"/>
+    <path d="M200 20 L200 8"/>
+  </g>
+  <g stroke="#0a1428" stroke-width="2.4" fill="none" stroke-linecap="round">
+    <path d="M58 170 L44 290 M58 170 L72 290 M44 290 L72 290"/>
+    <path d="M48 230 L68 230 M50 205 L66 205"/>
+    <path d="M48 230 L72 290 M68 230 L44 290"/>
+    <path d="M36 185 L80 185"/>
+  </g>
+  <path d="M0 296 Q80 284 160 292 T320 288 L320 306 L0 306Z" fill="#0a1428"/>
+</svg>
+"""
+
+SVG_LOAD_IMAGE = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 306">
+  <defs>
+    <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe0fa"/>
+      <stop offset="1" stop-color="#eef4fd"/>
+    </linearGradient>
+    <linearGradient id="gnd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6c93c9"/>
+      <stop offset="1" stop-color="#3b6aa8"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="306" fill="url(#sky2)"/>
+  <g fill="#b9cdea">
+    <rect x="190" y="110" width="42" height="150"/>
+    <rect x="236" y="80" width="36" height="180"/>
+    <rect x="276" y="125" width="44" height="135"/>
+    <rect x="150" y="150" width="34" height="110"/>
+  </g>
+  <g fill="#e8f0fb" opacity="0.9">
+    <rect x="198" y="122" width="6" height="8"/><rect x="210" y="122" width="6" height="8"/>
+    <rect x="198" y="142" width="6" height="8"/><rect x="210" y="142" width="6" height="8"/>
+    <rect x="244" y="94" width="6" height="8"/><rect x="256" y="94" width="6" height="8"/>
+    <rect x="244" y="114" width="6" height="8"/><rect x="256" y="114" width="6" height="8"/>
+    <rect x="284" y="140" width="6" height="8"/><rect x="298" y="140" width="6" height="8"/>
+  </g>
+  <g stroke="#3b6aa8" stroke-width="2.4" fill="none" stroke-linecap="round">
+    <path d="M70 40 L40 270 M70 40 L100 270 M40 270 L100 270"/>
+    <path d="M52 170 L88 170 M46 215 L94 215 M58 120 L82 120 M62 85 L78 85"/>
+    <path d="M58 120 L88 170 M82 120 L52 170 M52 170 L94 215 M88 170 L46 215"/>
+    <path d="M30 70 L110 70 M38 95 L102 95"/>
+  </g>
+  <rect x="0" y="262" width="320" height="44" fill="url(#gnd)"/>
+  <g fill="#3b6aa8" opacity="0.8">
+    <rect x="10" y="245" width="60" height="30"/>
+    <rect x="25" y="232" width="8" height="14"/><rect x="45" y="232" width="8" height="14"/>
+  </g>
+  <polyline points="170,150 205,128 235,98 262,86 285,62 308,44"
+            stroke="#1d5fe0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="308,44 296,46 303,56" fill="#1d5fe0"/>
+  <g fill="#ffffff" opacity="0.85">
+    <rect x="236" y="262" width="12" height="30"/>
+    <rect x="256" y="248" width="12" height="44"/>
+    <rect x="276" y="232" width="12" height="60"/>
+    <rect x="296" y="214" width="12" height="78"/>
+  </g>
+</svg>
+"""
+
+
+# ============================================================
 # SIDEBAR
 # ============================================================
 
 st.sidebar.markdown(
-    """
-    <div style="
-        font-size: 22px;
-        font-weight: 700;
-        padding: 10px 0 20px 0;
-    ">
-        ⚡ElectroMind
-    </div>
-    """,
+    _flat(
+        f"""
+        <div class="brand">
+            <img class="brand-icon" src="{_svg_uri(SVG_BOLT_LIGHT)}"/>
+            <div>
+                <div class="brand-name">ElectroMind</div>
+                <div class="brand-sub">Electrical Analysis Platform</div>
+            </div>
+        </div>
+        """
+    ),
     unsafe_allow_html=True
 )
 
@@ -361,10 +529,27 @@ st.sidebar.markdown(
 page = st.sidebar.radio(
     "Menu",
     [
-        "🛡️ Fault Detection",
-        "📈 Load Forecasting"
+        PAGE_DASHBOARD,
+        PAGE_FAULT,
+        PAGE_LOAD
     ],
-    key="page"
+    key="page",
+    label_visibility="collapsed"
+)
+
+
+st.sidebar.markdown(
+    _flat(
+        f"""
+        <div class="side-spacer"></div>
+        <img class="side-towers" src="{_svg_uri(SVG_TOWERS_SIDEBAR)}"/>
+        <div class="side-tagline">
+            Analisis Cerdas<br>untuk Sistem Kelistrikan<br>yang Lebih Andal
+        </div>
+        <div class="side-version">v1.0.0</div>
+        """
+    ),
+    unsafe_allow_html=True
 )
 
 
@@ -460,6 +645,91 @@ st.markdown(
         background: rgba(244, 67, 54, 0.15);
     }
 
+    /* ---------------- SIDEBAR (navy) ---------------- */
+
+    section[data-testid="stSidebar"] {
+        background: #0b2a5b;
+    }
+
+    section[data-testid="stSidebar"] > div {
+        background: #0b2a5b;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 4px 22px 4px;
+    }
+
+    .brand-icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .brand-name {
+        font-size: 20px;
+        font-weight: 700;
+        color: #5aa9ff;
+        line-height: 1.1;
+    }
+
+    .brand-sub {
+        font-size: 11.5px;
+        color: #cfe0fa;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 6px;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child {
+        display: none;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label p {
+        color: #ffffff;
+        font-size: 15px;
+        margin: 0;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: #1565f0;
+    }
+
+    .side-spacer {
+        height: 30vh;
+    }
+
+    .side-towers {
+        width: 100%;
+        opacity: 0.9;
+    }
+
+    .side-tagline {
+        color: #cfe0fa;
+        font-size: 14px;
+        line-height: 1.45;
+        padding: 6px 4px 0 4px;
+    }
+
+    .side-version {
+        color: #9db8e3;
+        font-size: 12px;
+        padding: 22px 4px 0 4px;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -467,18 +737,302 @@ st.markdown(
 
 
 # ============================================================
+# PAGE 0 — DASHBOARD
+# ============================================================
+
+if page == PAGE_DASHBOARD:
+
+    # CSS khusus dashboard (hanya aktif di halaman ini)
+    st.markdown(
+        """
+        <style>
+
+        .stApp {
+            background: #f3f7fd;
+        }
+
+        .block-container {
+            padding-top: 2.4rem;
+            max-width: 1280px;
+        }
+
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 22px;
+        }
+
+        .dash-title {
+            font-size: 38px;
+            font-weight: 800;
+            color: #0f2a5c;
+            line-height: 1.15;
+            margin-bottom: 8px;
+        }
+
+        .dash-welcome {
+            font-size: 20px;
+            color: #0f2a5c;
+        }
+
+        .dash-sub {
+            font-size: 15px;
+            color: #4a6fb5;
+        }
+
+        .dash-meta {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            padding-top: 10px;
+            color: #0f2a5c;
+            font-size: 15px;
+        }
+
+        .dash-avatar {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #a9c2ea;
+            vertical-align: middle;
+            margin-right: 10px;
+            text-align: center;
+            line-height: 30px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .dash-user {
+            font-weight: 600;
+        }
+
+        /* Kartu fitur */
+        div[class*="st-key-card_"] {
+            background: #ffffff;
+            border: 1px solid #dfe8f6;
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .card-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-icon img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .card-icon-blue {
+            background: #bcd7fb;
+        }
+
+        .card-icon-green {
+            background: #0fa36b;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f2a5c;
+        }
+
+        .card-text {
+            font-size: 15px;
+            line-height: 1.55;
+            color: #1b2f57;
+            margin-bottom: 14px;
+        }
+
+        .card-image {
+            width: 100%;
+            border-radius: 12px;
+            display: block;
+        }
+
+        /* Tombol "Pelajari Lebih Lanjut" */
+        .st-key-go_fault button,
+        .st-key-go_load button {
+            border: none;
+            border-radius: 8px;
+            padding: 6px 18px;
+        }
+
+        .st-key-go_fault button {
+            background: #1565f0;
+        }
+
+        .st-key-go_load button {
+            background: #0fa36b;
+        }
+
+        .st-key-go_fault button p,
+        .st-key-go_load button p {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .st-key-go_fault button:hover {
+            background: #0f52c4;
+        }
+
+        .st-key-go_load button:hover {
+            background: #0c8556;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # ========================================================
+    # HEADER
+    # ========================================================
+
+    st.markdown(
+        _flat(
+            f"""
+            <div class="dash-header">
+                <div>
+                    <div class="dash-title">Dashboard</div>
+                    <div class="dash-welcome">Selamat datang di ElectroMind!</div>
+                    <div class="dash-sub">
+                        Platform analisis kelistrikan berbasis Machine Learning untuk mendeteksi gangguan dan memprediksi beban listrik.
+                    </div>
+                </div>
+                <div class="dash-meta">
+                    <div>&nbsp; {datetime.now().strftime("%d %b %Y")}</div>
+                </div>
+            </div>
+            """
+        ),
+        unsafe_allow_html=True
+    )
+
+
+    # ========================================================
+    # KARTU FITUR
+    # ========================================================
+
+    card_left, card_right = st.columns(2, gap="medium")
+
+
+    # ---------------- Fault Detection ----------------
+
+    with card_left:
+
+        with st.container(key="card_fault"):
+
+            text_col, img_col = st.columns([1.1, 1], gap="medium")
+
+            with text_col:
+
+                st.markdown(
+                    _flat(
+                        f"""
+                        <div class="card-head">
+                            <div class="card-icon card-icon-blue">
+                                <img src="{_svg_uri(SVG_BOLT_BLUE)}"/>
+                            </div>
+                            <div class="card-title">Apa itu Fault Detection?</div>
+                        </div>
+                        <div class="card-text">
+                            Fault Detection adalah proses mengidentifikasi adanya gangguan pada sistem tenaga listrik, seperti gangguan hubung singkat antar fasa maupun ke tanah, menggunakan teknik analisis data dan machine learning.
+                        </div>
+                        """
+                    ),
+                    unsafe_allow_html=True
+                )
+
+                st.button(
+                    "Pelajari Lebih Lanjut →",
+                    key="go_fault",
+                    on_click=go_to_page,
+                    args=(PAGE_FAULT,)
+                )
+
+            with img_col:
+
+                st.markdown(
+                    f'<img class="card-image" src="'
+                    f'{_image_uri("fault_detection.png", SVG_FAULT_IMAGE)}"/>',
+                    unsafe_allow_html=True
+                )
+
+
+    # ---------------- Load Forecasting ----------------
+
+    with card_right:
+
+        with st.container(key="card_load"):
+
+            text_col, img_col = st.columns([1.1, 1], gap="medium")
+
+            with text_col:
+
+                st.markdown(
+                    _flat(
+                        f"""
+                        <div class="card-head">
+                            <div class="card-icon card-icon-green">
+                                <img src="{_svg_uri(SVG_CHART_ICON)}"/>
+                            </div>
+                            <div class="card-title">Apa itu Load Forecasting?</div>
+                        </div>
+                        <div class="card-text">
+                            Load Forecasting adalah proses memprediksi beban listrik di masa depan berdasarkan data historis dan faktor-faktor yang mempengaruhi, sehingga membantu perencanaan dan pengambilan keputusan pada sistem tenaga listrik.
+                        </div>
+                        """
+                    ),
+                    unsafe_allow_html=True
+                )
+
+                st.button(
+                    "Pelajari Lebih Lanjut →",
+                    key="go_load",
+                    on_click=go_to_page,
+                    args=(PAGE_LOAD,)
+                )
+
+            with img_col:
+
+                st.markdown(
+                    f'<img class="card-image" src="'
+                    f'{_image_uri("load_forecasting.png", SVG_LOAD_IMAGE)}"/>',
+                    unsafe_allow_html=True
+                )
+
+
+# ============================================================
 # PAGE 1 — FAULT DETECTION
 # ============================================================
 
-if page == "🛡️ Fault Detection":
+elif page == PAGE_FAULT:
 
     st.markdown(
-        '<div class="main-title">⚡ Sistem Deteksi Gangguan Saluran Listrik</div>',
+        '<div class="main-title">Fault Detection</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
-        '<div class="subtitle">Klasifikasi Bertingkat Berbasis Machine Learning</div>',
+        '<div class="subtitle">Deteksi & Klasifikasi Gangguan Listrik</div>',
         unsafe_allow_html=True
     )
 
@@ -727,7 +1281,7 @@ if page == "🛡️ Fault Detection":
 
     with right_col:
 
-        st.subheader("Hasil Prediksi Bertingkat")
+        st.subheader("Hasil Prediksi")
 
         result = st.session_state.fault_result
 
@@ -852,15 +1406,15 @@ if page == "🛡️ Fault Detection":
 # PAGE 2 — LOAD FORECASTING
 # ============================================================
 
-elif page == "📈 Load Forecasting":
+elif page == PAGE_LOAD:
 
     st.markdown(
-        '<div class="main-title">📈 Prediksi Beban Listrik</div>',
+        '<div class="main-title">Load Forecasting</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
-        '<div class="subtitle">Load Forecasting 24 Jam ke Depan</div>',
+        '<div class="subtitle">Prediksi Beban Listrik 24 Jam ke Depan</div>',
         unsafe_allow_html=True
     )
 
