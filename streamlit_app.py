@@ -683,7 +683,9 @@ st.markdown(
         gap: 6px;
     }
  
-    section[data-testid="stSidebar"] label[data-baseweb="radio"] {
+    /* Item menu (selektor ganda supaya tahan beda versi Streamlit) */
+    [data-testid="stSidebar"] [role="radiogroup"] label,
+    .st-key-page [role="radiogroup"] label {
         width: 100%;
         margin: 0;
         padding: 11px 14px;
@@ -692,26 +694,31 @@ st.markdown(
     }
  
     /* Hapus lingkaran radio bawaan Streamlit */
-    section[data-testid="stSidebar"] label[data-baseweb="radio"] > div:not(:has([data-testid="stMarkdownContainer"])),
-    section[data-testid="stSidebar"] label[data-baseweb="radio"] > span:not(:has([data-testid="stMarkdownContainer"])) {
+    [data-testid="stSidebar"] [role="radiogroup"] label > div:not(:has([data-testid="stMarkdownContainer"])),
+    .st-key-page [role="radiogroup"] label > div:not(:has([data-testid="stMarkdownContainer"])) {
         display: none !important;
     }
  
-    /* Teks menu putih */
-    section[data-testid="stSidebar"] label[data-baseweb="radio"] p,
-    section[data-testid="stSidebar"] label[data-baseweb="radio"] span,
-    section[data-testid="stSidebar"] label[data-baseweb="radio"] div {
+    /* Teks menu putih: container radiogroup + semua isinya */
+    [data-testid="stSidebar"] [role="radiogroup"],
+    [data-testid="stSidebar"] [role="radiogroup"] *,
+    [data-testid="stSidebar"] [data-testid="stRadio"] *,
+    .st-key-page,
+    .st-key-page * {
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        opacity: 1 !important;
+    }
+ 
+    [data-testid="stSidebar"] [role="radiogroup"] label p,
+    .st-key-page [role="radiogroup"] label p {
         font-size: 15px;
         margin: 0;
     }
  
-    section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover {
+    [data-testid="stSidebar"] [role="radiogroup"] label:hover,
+    .st-key-page [role="radiogroup"] label:hover {
         background: rgba(255,255,255,0.08);
-    }
- 
-    section[data-testid="stSidebar"] label[data-baseweb="radio"]:has(input:checked) {
-        background: #1565f0;
     }
  
     /* Sembunyikan tombol Deploy & menu titik tiga bawaan Streamlit */
@@ -933,8 +940,8 @@ if page == PAGE_DASHBOARD:
                     <div class="dash-title">Dashboard</div>
                     <div class="dash-welcome">Selamat datang di ElectroMind!</div>
                     <div class="dash-sub">
-                        Platform pembelajaran dan analisis sistem kelistrikan
-                        menggunakan Machine Learning.
+                        Platform analisis kelistrikan berbasis Machine Learning
+                        untuk mendeteksi gangguan dan memprediksi beban listrik.
                     </div>
                 </div>
                 <div class="dash-meta">
@@ -1054,12 +1061,12 @@ if page == PAGE_DASHBOARD:
 elif page == PAGE_FAULT:
  
     st.markdown(
-        '<div class="main-title">⚡ Sistem Deteksi Gangguan Saluran Listrik</div>',
+        '<div class="main-title">Fault Detection</div>',
         unsafe_allow_html=True
     )
  
     st.markdown(
-        '<div class="subtitle">Klasifikasi Bertingkat Berbasis Machine Learning</div>',
+        '<div class="subtitle">Deteksi & Klasifikasi Gangguan Listrik</div>',
         unsafe_allow_html=True
     )
  
@@ -1308,7 +1315,7 @@ elif page == PAGE_FAULT:
  
     with right_col:
  
-        st.subheader("Hasil Prediksi Bertingkat")
+        st.subheader("Hasil Prediksi")
  
         result = st.session_state.fault_result
  
@@ -1436,12 +1443,12 @@ elif page == PAGE_FAULT:
 elif page == PAGE_LOAD:
  
     st.markdown(
-        '<div class="main-title">📈 Prediksi Beban Listrik</div>',
+        '<div class="main-title">Load Forecasting</div>',
         unsafe_allow_html=True
     )
  
     st.markdown(
-        '<div class="subtitle">Load Forecasting 24 Jam ke Depan</div>',
+        '<div class="subtitle">Prediksi Beban Listrik 24 Jam ke Depan</div>',
         unsafe_allow_html=True
     )
  
